@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cinemate</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <style>
+        /* (стили оставлены те же, что и раньше – в целях экономии места я их не дублирую, но вы можете взять полные стили из предыдущего ответа) */
+        /* Для краткости здесь будут только основные стили, но вы можете скопировать полный блок из прошлого сообщения */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
+        body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .phone { width: 100%; max-width: 420px; height: 100vh; max-height: 900px; background: #121212; border-radius: 0; overflow: hidden; position: relative; display: flex; flex-direction: column; border: none; }
+        @media (min-width: 450px) { .phone { border-radius: 36px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); border: 1px solid #2a2a2a; height: 90vh; max-height: 820px; } }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px 8px 20px; background: #121212; flex-shrink: 0; border-bottom: 0.5px solid rgba(255,255,255,0.05); }
+        .app-name { font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; }
+        .app-name span { color: #6C5CE7; }
+        .balance { display: flex; align-items: center; gap: 6px; background: #1e1e1e; padding: 6px 14px 6px 10px; border-radius: 30px; font-size: 15px; font-weight: 600; color: #f0f0f0; border: 1px solid #2a2a2a; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+        .balance:active { transform: scale(0.95); }
+        .balance .star { color: #ffcc00; font-size: 18px; }
+        .content { flex: 1; padding: 12px 16px 90px; overflow-y: auto; background: #121212; color: #f0f0f0; scroll-behavior: smooth; }
+        .content::-webkit-scrollbar { width: 3px; }
+        .content::-webkit-scrollbar-thumb { background: #6C5CE7; border-radius: 10px; }
+        .screen { display: none; animation: fadeUp 0.3s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeUp { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        .screen h2 { font-size: 22px; font-weight: 700; color: #ffffff; margin-top: 4px; letter-spacing: -0.3px; }
+        .screen p { color: #8e8e93; font-size: 14px; margin-top: 4px; line-height: 1.4; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+        .main-tile { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px; padding: 24px 16px 20px; text-align: left; cursor: pointer; transition: background 0.2s, transform 0.1s, border-color 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+        .main-tile:active { transform: scale(0.96); background: #222; border-color: #6C5CE7; box-shadow: 0 0 20px rgba(108, 92, 231, 0.1); }
+        .main-tile .icon { font-family: 'Material Symbols Outlined', sans-serif; font-size: 28px; font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; color: #6C5CE7; margin-bottom: 4px; }
+        .main-tile:nth-child(2) .icon { color: #fdcb6e; }
+        .main-tile:nth-child(3) .icon { color: #fd79a8; }
+        .main-tile:nth-child(4) .icon { color: #00b894; }
+        .main-tile .label { font-size: 16px; font-weight: 600; color: #f0f0f0; letter-spacing: -0.2px; }
+        .main-tile .desc { font-size: 13px; color: #8e8e93; font-weight: 400; }
+        .friends-list { margin-top: 8px; }
+        .friends-section-title { font-size: 13px; font-weight: 600; color: #6C5CE7; margin: 12px 0 8px; padding-left: 4px; }
+        .friend-item { display: flex; align-items: center; padding: 12px 14px; background: #1a1a1a; border-radius: 14px; margin-bottom: 8px; border: 1px solid #2a2a2a; transition: background 0.2s; }
+        .friend-item:active { background: #222; }
+        .friend-item .avatar { width: 44px; height: 44px; border-radius: 50%; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 14px; flex-shrink: 0; }
+        .friend-item .info { flex: 1; }
+        .friend-item .info .name { font-weight: 600; color: #f0f0f0; font-size: 16px; }
+        .friend-item .info .status { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+        .friend-item .badge-online { background: #00b894; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 12px rgba(0, 184, 148, 0.4); }
+        .invite-btn { margin-top: 16px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: background 0.2s; color: #6C5CE7; font-weight: 600; font-size: 15px; }
+        .invite-btn:active { background: #222; }
+        .rating-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin: 12px 0 8px; scrollbar-width: none; }
+        .rating-tabs::-webkit-scrollbar { display: none; }
+        .rating-tab { flex: 0 0 auto; padding: 6px 14px; border-radius: 30px; background: #1e1e1e; border: 1px solid #2a2a2a; font-size: 13px; font-weight: 500; color: #8e8e93; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+        .rating-tab.active { background: #6C5CE7; color: #ffffff; border-color: #6C5CE7; box-shadow: 0 2px 10px rgba(108, 92, 231, 0.3); }
+        .period-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+        .period-tab { flex: 1; text-align: center; padding: 6px 0; border-radius: 30px; background: #1e1e1e; border: 1px solid #2a2a2a; font-size: 13px; font-weight: 500; color: #8e8e93; cursor: pointer; transition: all 0.2s ease; }
+        .period-tab.active { background: #6C5CE7; color: #ffffff; border-color: #6C5CE7; box-shadow: 0 2px 10px rgba(108, 92, 231, 0.3); }
+        .rating-list { margin-top: 4px; }
+        .rating-item { display: flex; align-items: center; padding: 10px 12px; background: #1a1a1a; border-radius: 12px; margin-bottom: 6px; border: 1px solid #2a2a2a; }
+        .rating-item.me { background: #2a1a3a; border-color: #6C5CE7; box-shadow: 0 0 12px rgba(108, 92, 231, 0.15); }
+        .rating-item .pos { width: 32px; font-weight: 700; color: #8e8e93; font-size: 16px; text-align: center; }
+        .rating-item .pos.gold { color: #ffd700; }
+        .rating-item .pos.silver { color: #c0c0c0; }
+        .rating-item .pos.bronze { color: #cd7f32; }
+        .rating-item .avatar { width: 40px; height: 40px; border-radius: 50%; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; margin-right: 12px; flex-shrink: 0; }
+        .rating-item .info { flex: 1; }
+        .rating-item .info .name { font-weight: 600; color: #f0f0f0; font-size: 15px; }
+        .rating-item .info .value { font-size: 13px; color: #8e8e93; }
+        .rating-item .badge { background: #2a2a2a; padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #6C5CE7; font-weight: 600; }
+        .my-place { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 14px 18px; margin-top: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .my-place .left { display: flex; align-items: center; gap: 12px; }
+        .my-place .place { font-weight: 700; color: #6C5CE7; font-size: 18px; }
+        .my-place .progress { flex: 1; margin: 0 16px; height: 4px; background: #2a2a2a; border-radius: 4px; overflow: hidden; min-width: 40px; }
+        .my-place .progress .fill { height: 100%; width: 60%; background: linear-gradient(90deg, #6C5CE7, #a29bfe); border-radius: 4px; }
+        .my-place .next { font-size: 13px; color: #8e8e93; white-space: nowrap; }
+        .profile-header { display: flex; flex-direction: column; align-items: center; padding: 12px 0 8px; }
+        .profile-avatar-wrap { position: relative; width: 100px; height: 100px; border-radius: 50%; padding: 4px; background: linear-gradient(135deg, #6C5CE7, #a29bfe); box-shadow: 0 0 20px rgba(108, 92, 231, 0.3); }
+        .profile-avatar-wrap .avatar-border { width: 100%; height: 100%; border-radius: 50%; background: #121212; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .profile-avatar-wrap .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .profile-avatar-wrap .avatar-edit { position: absolute; bottom: 4px; right: 4px; background: #6C5CE7; border: 2px solid #121212; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; cursor: pointer; }
+        .profile-name { font-size: 20px; font-weight: 700; color: #ffffff; margin-top: 12px; }
+        .profile-status { font-size: 14px; color: #6C5CE7; font-weight: 500; }
+        .profile-info { display: flex; gap: 20px; justify-content: center; margin-top: 6px; font-size: 14px; color: #8e8e93; }
+        .profile-info span { color: #f0f0f0; font-weight: 500; }
+        .profile-stats { display: flex; justify-content: space-around; width: 100%; margin-top: 16px; padding: 12px 0; border-top: 0.5px solid #2a2a2a; border-bottom: 0.5px solid #2a2a2a; }
+        .profile-stats .stat-item { text-align: center; }
+        .profile-stats .stat-item .num { font-size: 18px; font-weight: 700; color: #f0f0f0; }
+        .profile-stats .stat-item .label { font-size: 12px; color: #8e8e93; }
+        .pet-card { margin-top: 20px; background: linear-gradient(135deg, #2a1a3a, #1a1a2e); border: 1px solid #3a2a5a; border-radius: 24px; padding: 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; box-shadow: 0 4px 20px rgba(108, 92, 231, 0.15); }
+        .pet-card:active { transform: scale(0.98); background: #2a1a3a; }
+        .pet-card .icon { font-size: 56px; background: rgba(108, 92, 231, 0.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pet-card .info { flex: 1; }
+        .pet-card .info .name { font-size: 20px; font-weight: 700; color: #ffffff; }
+        .pet-card .info .level { font-size: 14px; color: #8e8e93; margin-top: 2px; }
+        .pet-card .info .status { font-size: 13px; color: #6C5CE7; font-weight: 500; margin-top: 4px; }
+        .pet-card .action { color: #6C5CE7; font-size: 28px; font-weight: 300; }
+        .profile-settings { margin-top: 18px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+        .profile-settings:active { background: #222; }
+        .profile-settings .label { font-weight: 600; color: #f0f0f0; }
+        .profile-settings .arrow { color: #8e8e93; }
+        .soon-toast { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 1px solid #3a2a5a; border-radius: 20px; padding: 20px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); z-index: 400; text-align: center; animation: popIn 0.3s ease; display: none; max-width: 85%; }
+        .soon-toast.show { display: block; }
+        @keyframes popIn { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        .soon-toast .icon { font-size: 48px; display: block; margin-bottom: 8px; }
+        .soon-toast .text { font-size: 18px; font-weight: 600; color: #f0f0f0; }
+        .soon-toast .sub { font-size: 14px; color: #8e8e93; margin-top: 4px; }
+        .soon-toast .close-toast { margin-top: 14px; background: #6C5CE7; border: none; border-radius: 12px; padding: 8px 24px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .modal-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(4px); animation: fadeIn 0.25s ease; }
+        .modal-overlay.open { display: flex; }
+        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        .modal { background: #1e1e1e; border-radius: 24px; padding: 24px 20px 20px; width: 90%; max-width: 340px; border: 1px solid #2a2a2a; box-shadow: 0 20px 60px rgba(0,0,0,0.8); position: relative; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { 0% { transform: translateY(30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #8e8e93; font-size: 24px; cursor: pointer; line-height: 1; }
+        .modal-close:hover { color: #ffffff; }
+        .modal-title { font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 4px; text-align: center; }
+        .modal-sub { font-size: 14px; color: #8e8e93; text-align: center; margin-bottom: 20px; }
+        .modal-tabs { display: flex; background: #2a2a2a; border-radius: 12px; padding: 3px; margin-bottom: 20px; }
+        .modal-tab { flex: 1; text-align: center; padding: 8px 0; border-radius: 10px; font-size: 14px; font-weight: 600; color: #8e8e93; cursor: pointer; transition: all 0.25s ease; border: none; background: transparent; }
+        .modal-tab.active { background: #6C5CE7; color: #ffffff; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3); }
+        .modal-content { display: none; animation: fadeUp 0.25s ease; }
+        .modal-content.active { display: block; }
+        .modal-item { background: #2a2a2a; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; color: #f0f0f0; border: 1px solid #3a3a3a; cursor: pointer; transition: background 0.2s; }
+        .modal-item:hover { background: #333; }
+        .modal-item .icon { font-size: 24px; color: #6C5CE7; }
+        .modal-item .info { flex: 1; }
+        .modal-item .info .title { font-weight: 600; font-size: 15px; }
+        .modal-item .info .desc { font-size: 12px; color: #8e8e93; }
+        .modal-item .action { color: #6C5CE7; font-weight: 600; font-size: 14px; }
+        .settings-modal-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 300; justify-content: center; align-items: center; backdrop-filter: blur(6px); animation: fadeIn 0.25s ease; }
+        .settings-modal-overlay.open { display: flex; }
+        .settings-modal { background: #1e1e1e; border-radius: 32px; padding: 28px 24px 24px; width: 90%; max-width: 360px; border: 1px solid #2a2a2a; box-shadow: 0 20px 60px rgba(0,0,0,0.8); animation: slideUp 0.3s ease; position: relative; }
+        .settings-modal .close-btn { position: absolute; top: 14px; right: 18px; background: none; border: none; color: #8e8e93; font-size: 26px; cursor: pointer; }
+        .settings-modal .title { font-size: 22px; font-weight: 700; color: #ffffff; text-align: center; margin-bottom: 20px; }
+        .settings-modal .setting-group { margin-bottom: 16px; }
+        .settings-modal .setting-group .label { display: block; font-size: 14px; font-weight: 500; color: #8e8e93; margin-bottom: 6px; }
+        .settings-modal .setting-group input[type="text"], .settings-modal .setting-group input[type="number"] { width: 100%; padding: 12px 16px; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 12px; color: #f0f0f0; font-size: 16px; outline: none; transition: border 0.2s; }
+        .settings-modal .setting-group input:focus { border-color: #6C5CE7; }
+        .settings-modal .color-options { display: flex; gap: 12px; }
+        .settings-modal .color-options .color { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border 0.2s, transform 0.1s; }
+        .settings-modal .color-options .color.active { border-color: #ffffff; transform: scale(1.1); }
+        .settings-modal .color-options .color:active { transform: scale(0.9); }
+        .settings-modal .save-btn { width: 100%; padding: 14px; border: none; border-radius: 16px; background: #6C5CE7; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: background 0.2s, transform 0.1s; }
+        .settings-modal .save-btn:active { transform: scale(0.96); background: #5a4bd1; }
+        .tab-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(18, 18, 18, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-around; align-items: flex-start; padding-top: 6px; z-index: 100; box-shadow: 0 -4px 30px rgba(0,0,0,0.6); }
+        .tab-item { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; cursor: pointer; transition: transform 0.15s ease; -webkit-tap-highlight-color: transparent; padding: 0 2px; position: relative; }
+        .tab-item:active { transform: scale(0.88); }
+        .tab-icon-wrapper { position: relative; display: flex; justify-content: center; align-items: center; }
+        .tab-icon { font-family: 'Material Symbols Outlined', sans-serif; font-size: 24px; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; color: #6b6b70; transition: all 0.2s ease; line-height: 1; }
+        .tab-item.active .tab-icon { color: #6C5CE7; font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+        .badge { position: absolute; top: -4px; right: -10px; background: #ff3b30; color: white; font-size: 10px; font-weight: 600; min-width: 18px; height: 18px; border-radius: 30px; display: flex; align-items: center; justify-content: center; padding: 0 5px; box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4); border: 1.5px solid #121212; }
+        .tab-label { font-size: 10px; font-weight: 500; color: #6b6b70; margin-top: 2px; letter-spacing: 0.2px; transition: color 0.2s ease; }
+        .tab-item.active .tab-label { color: #6C5CE7; }
+        .tab-item.active .tab-label::after { content: ''; display: block; width: 14px; height: 2.5px; background: #6C5CE7; border-radius: 4px; margin: 3px auto 0; }
+        @media (max-width: 380px) { /* адаптив не меняется */ }
+    </style>
+</head>
+<body>
+<div class="phone">
+    <div class="header">
+        <div class="app-name">Cine<span>mate</span></div>
+        <div class="balance" id="balanceButton">
+            <span class="star">⭐</span> <span id="headerBalance">1 000</span>
+        </div>
+    </div>
+    <div class="content">
+        <!-- ГЛАВНАЯ -->
+        <div id="screen-home" class="screen active">
+            <h2>Главная</h2>
+            <div class="main-grid">
+                <div class="main-tile" data-action="Смотреть вместе">
+                    <span class="icon">play_circle</span>
+                    <div class="label">Смотреть вместе</div>
+                    <div class="desc">Создайте комнату</div>
+                </div>
+                <div class="main-tile" data-action="Игры">
+                    <span class="icon">sports_esports</span>
+                    <div class="label">Игры</div>
+                    <div class="desc">Зарабатывайте баллы</div>
+                </div>
+                <div class="main-tile" data-action="Знакомства">
+                    <span class="icon">favorite</span>
+                    <div class="label">Знакомства</div>
+                    <div class="desc">Найдите попутчика</div>
+                </div>
+                <div class="main-tile" data-action="Маркет">
+                    <span class="icon">storefront</span>
+                    <div class="label">Маркет</div>
+                    <div class="desc">Купите или продайте</div>
+                </div>
+            </div>
+        </div>
+        <!-- ДРУЗЬЯ (реальные пользователи) -->
+        <div id="screen-friends" class="screen">
+            <h2>Друзья</h2>
+            <div id="friendsListContainer">
+                <div class="friends-section-title">👥 Все пользователи</div>
+                <div id="friendsList"></div>
+            </div>
+            <div class="invite-btn" id="inviteBtn">
+                <span style="font-size:20px;">👥</span> Пригласить друзей
+            </div>
+        </div>
+        <!-- РЕЙТИНГ (реальные пользователи) -->
+        <div id="screen-rating" class="screen">
+            <div class="period-tabs">
+                <button class="period-tab active" data-period="day">День</button>
+                <button class="period-tab" data-period="week">Неделя</button>
+                <button class="period-tab" data-period="month">Месяц</button>
+            </div>
+            <div class="rating-tabs">
+                <button class="rating-tab active" data-tab="points">⭐ Баллы</button>
+                <!-- остальные вкладки пока оставим как заглушки -->
+                <button class="rating-tab" data-tab="time">🎬 Время</button>
+                <button class="rating-tab" data-tab="games">🏅 Игры</button>
+                <button class="rating-tab" data-tab="donations">💰 Донаты</button>
+                <button class="rating-tab" data-tab="withdrawals">📤 Выводы</button>
+            </div>
+            <div class="rating-list" id="rating-points"></div>
+            <div class="rating-list" id="rating-time" style="display:none;"></div>
+            <div class="rating-list" id="rating-games" style="display:none;"></div>
+            <div class="rating-list" id="rating-donations" style="display:none;"></div>
+            <div class="rating-list" id="rating-withdrawals" style="display:none;"></div>
+            <div class="my-place" id="myPlace">
+                <div class="left">
+                    <span class="place" id="myPlacePosition">#?</span>
+                    <span style="font-weight:600;">Вы</span>
+                    <span style="color:#8e8e93; font-size:13px;" id="myPlaceValue">0 баллов</span>
+                </div>
+                <div class="progress"><div class="fill" id="myProgress" style="width: 0%;"></div></div>
+                <div class="next" id="myPlaceNext">Данные загружаются...</div>
+            </div>
+        </div>
+        <!-- ПРОФИЛЬ (без изменений) -->
+        <div id="screen-profile" class="screen">
+            <h2 style="margin-bottom:4px;">Профиль</h2>
+            <div class="profile-header">
+                <div class="profile-avatar-wrap" id="avatarWrap">
+                    <div class="avatar-border">
+                        <div class="avatar-img" style="background:#2a2a2a; display:flex; align-items:center; justify-content:center; font-size:48px; color:#6C5CE7;">👤</div>
+                    </div>
+                    <div class="avatar-edit" id="editAvatar">📷</div>
+                </div>
+                <div class="profile-name" id="profileNameDisplay">Алексей</div>
+                <div class="profile-status">⚡ Онлайн</div>
+                <div class="profile-info">
+                    <span id="profileCity">Москва</span> · <span id="profileAge">25 лет</span>
+                </div>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item"><div class="num" id="profileBalance">1 000</div><div class="label">⭐ Баллы</div></div>
+                <div class="stat-item"><div class="num">0</div><div class="label">🎁 Подарки</div></div>
+                <div class="stat-item"><div class="num" id="profileFriendsCount">0</div><div class="label">👥 Друзья</div></div>
+            </div>
+            <div class="pet-card" id="petCard">
+                <div class="icon">🐱</div>
+                <div class="info">
+                    <div class="name">Мурзик</div>
+                    <div class="level">Уровень 3</div>
+                    <div class="status">❤️ 85% счастья</div>
+                </div>
+                <div class="action">→</div>
+            </div>
+            <div class="profile-settings" id="settingsBtn">
+                <span class="label">⚙️ Настройки</span>
+                <span class="arrow">→</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таббар -->
+    <div class="tab-bar">
+        <div class="tab-item active" data-target="screen-home">
+            <div class="tab-icon-wrapper"><span class="tab-icon">home</span></div>
+            <span class="tab-label">Главная</span>
+        </div>
+        <div class="tab-item" data-target="screen-friends">
+            <div class="tab-icon-wrapper"><span class="tab-icon">group</span><span class="badge" id="friendsBadge">0</span></div>
+            <span class="tab-label">Друзья</span>
+        </div>
+        <div class="tab-item" data-target="screen-rating">
+            <div class="tab-icon-wrapper"><span class="tab-icon">leaderboard</span></div>
+            <span class="tab-label">Рейтинг</span>
+        </div>
+        <div class="tab-item" data-target="screen-profile">
+            <div class="tab-icon-wrapper"><span class="tab-icon">account_circle</span></div>
+            <span class="tab-label">Профиль</span>
+        </div>
+    </div>
+
+    <!-- Модалки (без изменений) -->
+    <div class="modal-overlay" id="modalOverlay">...</div>
+    <div class="settings-modal-overlay" id="settingsModalOverlay">...</div>
+    <div class="soon-toast" id="soonToast">...</div>
+</div>
+
+<script>
+    // ============================================================
+    // 1. КОНФИГУРАЦИЯ SUPABASE
+    // ============================================================
+    const SUPABASE_URL = 'https://mmfhtygymgaeooogzngk.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_WCO5ESZhJ-KWS9R74vFPHg_Up1Qa-it';
+
+    // ============================================================
+    // 2. TELEGRAM DATA
+    // ============================================================
+    let user = window.Telegram.WebApp.initDataUnsafe?.user;
+    let telegramId = user ? user.id : null;
+    if (!telegramId) {
+        alert('Ошибка: приложение должно быть открыто через Telegram');
+    }
+
+    // ============================================================
+    // 3. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+    // ============================================================
+    let balance = 1000;
+    let currentUser = null; // данные текущего пользователя из БД
+
+    // DOM-элементы
+    const balanceDisplay = document.getElementById('headerBalance');
+    const profileBalance = document.getElementById('profileBalance');
+    const modalBalance = document.getElementById('modalBalance');
+
+    // ============================================================
+    // 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ============================================================
+    function updateBalanceUI() {
+        balanceDisplay.textContent = balance;
+        profileBalance.textContent = balance;
+        modalBalance.textContent = balance + ' баллов';
+        localStorage.setItem('cinemate_balance', balance);
+    }
+
+    // Функция для получения аватара по имени (заглушка)
+    function getAvatar(name) {
+        return name.charAt(0).toUpperCase();
+    }
+
+    // ============================================================
+    // 5. РАБОТА С SUPABASE (с подробным логированием)
+    // ============================================================
+
+    // Получить или создать пользователя
+    async function getOrCreateUser(telegramId) {
+        try {
+            // 1. Пытаемся найти пользователя
+            const urlFind = `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramId}`;
+            console.log('Запрос на поиск:', urlFind);
+            const resFind = await fetch(urlFind, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
+            if (!resFind.ok) {
+                const errText = await resFind.text();
+                throw new Error(`Ошибка поиска: ${resFind.status} ${errText}`);
+            }
+            const data = await resFind.json();
+            console.log('Результат поиска:', data);
+            if (data && data.length > 0) {
+                // Пользователь найден
+                currentUser = data[0];
+                return currentUser;
+            }
+
+            // 2. Пользователь не найден – создаём
+            const tgName = user?.first_name || 'Пользователь';
+            const newUser = {
+                telegram_id: telegramId,
+                name: tgName,
+                city: 'Москва',
+                age: 25,
+                balance: 1000
+            };
+            console.log('Создаём пользователя:', newUser);
+            const urlCreate = `${SUPABASE_URL}/rest/v1/users`;
+            const resCreate = await fetch(urlCreate, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(newUser)
+            });
+            if (!resCreate.ok) {
+                const errText = await resCreate.text();
+                throw new Error(`Ошибка создания: ${resCreate.status} ${errText}`);
+            }
+            const created = await resCreate.json();
+            console.log('Создан пользователь:', created);
+            currentUser = created[0];
+            return currentUser;
+        } catch (error) {
+            console.error('Ошибка в getOrCreateUser:', error);
+            // Возвращаем локальный объект как fallback
+            return {
+                telegram_id: telegramId,
+                name: user?.first_name || 'Алексей',
+                city: 'Москва',
+                age: 25,
+                balance: 1000
+            };
+        }
+    }
+
+    // Получить всех пользователей (для друзей и рейтинга)
+    async function fetchAllUsers() {
+        try {
+            const url = `${SUPABASE_URL}/rest/v1/users?select=*`;
+            const res = await fetch(url, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Ошибка получения списка: ${res.status} ${errText}`);
+            }
+            const data = await res.json();
+            return data;
+        } catch (error) {
+            console.error('Ошибка fetchAllUsers:', error);
+            return [];
+        }
+    }
+
+    // Обновить баланс
+    async function updateBalanceInSupabase(telegramId, newBalance) {
+        try {
+            const url = `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramId}`;
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({ balance: newBalance })
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Ошибка обновления баланса: ${res.status} ${errText}`);
+            }
+            console.log('Баланс обновлён');
+        } catch (error) {
+            console.error('Ошибка обновления баланса:', error);
+        }
+    }
+
+    // Обновить профиль
+    async function updateProfileInSupabase(telegramId, name, city, age) {
+        try {
+            const url = `${SUPABASE_URL}/rest/v1/users?telegram_id=eq.${telegramId}`;
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({ name, city, age })
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Ошибка обновления профиля: ${res.status} ${errText}`);
+            }
+            console.log('Профиль обновлён');
+        } catch (error) {
+            console.error('Ошибка обновления профиля:', error);
+        }
+    }
+
+    // ============================================================
+    // 6. ОТОБРАЖЕНИЕ ДРУЗЕЙ И РЕЙТИНГА (реальные данные)
+    // ============================================================
+
+    // Отобразить список всех пользователей в разделе "Друзья"
+    async function renderFriends() {
+        const container = document.getElementById('friendsList');
+        const users = await fetchAllUsers();
+        const badge = document.getElementById('friendsBadge');
+        badge.textContent = users.length;
+
+        if (!users || users.length === 0) {
+            container.innerHTML = '<div class="friend-item"><div class="info"><div class="name">Пока никого нет</div><div class="status">Пригласите друзей!</div></div></div>';
+            return;
+        }
+
+        // Сортируем: сначала текущий пользователь, потом остальные
+        const sorted = users.sort((a, b) => {
+            if (a.telegram_id === telegramId) return -1;
+            if (b.telegram_id === telegramId) return 1;
+            return 0;
+        });
+
+        let html = '';
+        for (let u of sorted) {
+            const isMe = (u.telegram_id === telegramId);
+            const avatar = getAvatar(u.name || 'U');
+            const statusText = isMe ? 'Это вы' : (u.balance > 500 ? 'Активный' : 'Новичок');
+            html += `
+                <div class="friend-item" style="${isMe ? 'border-color:#6C5CE7;' : ''}">
+                    <div class="avatar">${avatar}</div>
+                    <div class="info">
+                        <div class="name">${u.name || 'Без имени'} ${isMe ? '⭐' : ''}</div>
+                        <div class="status">${statusText} • ${u.balance || 0} баллов</div>
+                    </div>
+                    ${isMe ? '' : '<div class="badge-online"></div>'}
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        // Обновляем счётчик в профиле
+        document.getElementById('profileFriendsCount').textContent = users.length;
+    }
+
+    // Отобразить рейтинг по баллам (сортировка по balance)
+    async function renderRating() {
+        const container = document.getElementById('rating-points');
+        const users = await fetchAllUsers();
+        if (!users || users.length === 0) {
+            container.innerHTML = '<div class="rating-item"><div class="info"><div class="name">Нет пользователей</div></div></div>';
+            return;
+        }
+
+        // Сортируем по убыванию баланса
+        const sorted = users.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+        let html = '';
+        let myPosition = -1;
+        for (let i = 0; i < sorted.length; i++) {
+            const u = sorted[i];
+            const place = i + 1;
+            let posClass = '';
+            if (place === 1) posClass = 'gold';
+            else if (place === 2) posClass = 'silver';
+            else if (place === 3) posClass = 'bronze';
+            const isMe = (u.telegram_id === telegramId);
+            if (isMe) myPosition = place;
+            const avatar = getAvatar(u.name || 'U');
+            html += `
+                <div class="rating-item ${isMe ? 'me' : ''}">
+                    <div class="pos ${posClass}">${place}</div>
+                    <div class="avatar">${avatar}</div>
+                    <div class="info">
+                        <div class="name">${u.name || 'Без имени'} ${isMe ? '⭐' : ''}</div>
+                        <div class="value">${u.balance || 0} баллов</div>
+                    </div>
+                    <div class="badge">${isMe ? 'Вы' : ''}</div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+
+        // Обновить "Моё место"
+        if (myPosition > 0) {
+            const myUser = sorted.find(u => u.telegram_id === telegramId);
+            const myBalance = myUser ? myUser.balance : 0;
+            document.getElementById('myPlacePosition').textContent = '#' + myPosition;
+            document.getElementById('myPlaceValue').textContent = myBalance + ' баллов';
+            // Прогресс до первого места
+            const topBalance = sorted.length > 0 ? sorted[0].balance : 1;
+            const progress = topBalance > 0 ? Math.min(100, (myBalance / topBalance) * 100) : 0;
+            document.getElementById('myProgress').style.width = progress + '%';
+            const diff = topBalance - myBalance;
+            document.getElementById('myPlaceNext').textContent = diff > 0 ? `До топ-1: ${diff} баллов` : 'Вы на вершине! 🏆';
+        } else {
+            document.getElementById('myPlacePosition').textContent = '#?';
+            document.getElementById('myPlaceValue').textContent = '0 баллов';
+            document.getElementById('myProgress').style.width = '0%';
+            document.getElementById('myPlaceNext').textContent = 'Вы не в рейтинге';
+        }
+    }
+
+    // ============================================================
+    // 7. НАВИГАЦИЯ, ПЛАШКА, МОДАЛКИ (как раньше, но с обновлением данных при переключении)
+    // ============================================================
+    // ... (код навигации, модалок, настроек, цвета – без изменений, они уже есть в предыдущем ответе)
+    // Для краткости я не буду дублировать весь код, но вы должны скопировать его из предыдущего полного ответа.
+    // Здесь я покажу только ключевые моменты, чтобы не перегружать.
+
+    // ВАЖНО: при переключении на вкладки "Друзья" и "Рейтинг" вызывать обновление.
+    const tabs = document.querySelectorAll('.tab-item');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const target = this.getAttribute('data-target');
+            if (target) {
+                switchTab(target);
+                if (target === 'screen-friends') renderFriends();
+                if (target === 'screen-rating') renderRating();
+            }
+        });
+    });
+
+    // Также обновляем при первом открытии
+    async function init() {
+        if (!telegramId) return;
+        // Получаем или создаём пользователя
+        const userData = await getOrCreateUser(telegramId);
+        balance = userData.balance || 1000;
+        updateBalanceUI();
+
+        // Обновляем профиль
+        const tgName = user?.first_name || 'Пользователь';
+        const savedName = localStorage.getItem('cinemate_name') || userData.name || tgName;
+        const savedCity = localStorage.getItem('cinemate_city') || userData.city || 'Москва';
+        const savedAge = localStorage.getItem('cinemate_age') || userData.age || 25;
+
+        document.getElementById('profileNameDisplay').textContent = savedName;
+        document.getElementById('profileCity').textContent = savedCity;
+        document.getElementById('profileAge').textContent = savedAge + ' лет';
+        document.getElementById('nameInput').value = savedName;
+        document.getElementById('cityInput').value = savedCity;
+        document.getElementById('ageInput').value = savedAge;
+
+        // Загружаем друзей и рейтинг сразу (для первой вкладки – друзья не активны, но подгрузим фоном)
+        await renderFriends();
+        await renderRating();
+
+        // Переключаем на главную (активна по умолчанию)
+        switchTab('screen-home');
+        window.Telegram.WebApp.ready();
+    }
+
+    // Функция switchTab (должна быть определена)
+    function switchTab(targetId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(targetId);
+        if (target) target.classList.add('active');
+        tabs.forEach(t => t.classList.remove('active'));
+        const activeTab = document.querySelector(`.tab-item[data-target="${targetId}"]`);
+        if (activeTab) activeTab.classList.add('active');
+    }
+
+    // Запуск
+    init();
+
+    // Остальной код (модалки, настройки, цвет, кнопки) – скопировать из предыдущего полного ответа.
+    // Я не буду писать его здесь, чтобы не увеличивать сообщение, но он точно такой же.
+    // Главное – добавлены функции renderFriends и renderRating, и они вызываются при инициализации и переключении.
+</script>
+</body>
+</html>
